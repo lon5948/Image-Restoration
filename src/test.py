@@ -16,7 +16,7 @@ from model import PromptIR
 class PromptIRModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
-        self.net = PromptIR(decoder=True)
+        self.net = PromptIR(decoder=False)
         self.loss_fn = nn.L1Loss()
 
     def forward(self, x):

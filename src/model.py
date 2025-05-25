@@ -268,8 +268,8 @@ class PromptIR(nn.Module):
         inp_channels=3,
         out_channels=3,
         dim=48,
-        num_blocks=[4, 6, 6, 8],
-        num_refinement_blocks=4,
+        num_blocks=[6, 8, 8, 10],
+        num_refinement_blocks=6,
         heads=[1, 2, 4, 8],
         ffn_expansion_factor=2.66,
         bias=False,
@@ -292,6 +292,16 @@ class PromptIR(nn.Module):
             )
             self.prompt3 = PromptGenBlock(
                 prompt_dim=320, prompt_len=5, prompt_size=16, lin_dim=384
+            )
+        else:
+            self.latent_reduce = nn.Conv2d(
+                int(dim * 2**3),  # 384
+                256,
+                kernel_size=1,
+                bias=bias,
+            )
+            self.latent_to_up = nn.Conv2d(  # NEW
+                256, int(dim * 2**2), kernel_size=1, bias=bias
             )
 
         self.chnl_reduce1 = nn.Conv2d(64, 64, kernel_size=1, bias=bias)
@@ -485,6 +495,9 @@ class PromptIR(nn.Module):
             latent = torch.cat([latent, dec3_param], 1)
             latent = self.noise_level3(latent)
             latent = self.reduce_noise_level3(latent)
+        else:
+            latent = self.latent_reduce(latent)
+            latent = self.latent_to_up(latent)
 
         inp_dec_level3 = self.up4_3(latent)
 
