@@ -22,6 +22,18 @@ class PromptIRModel(pl.LightningModule):
     def forward(self, x):
         return self.net(x)
 
+    def forward_tta(self, x):
+        outs = [
+            self(x),
+            self(torch.flip(x, [3])),  # h-flip
+            self(torch.flip(x, [2])),  # v-flip
+            self(torch.flip(x, [2, 3])),
+        ]  # hv-flip
+        outs[1] = torch.flip(outs[1], [3])
+        outs[2] = torch.flip(outs[2], [2])
+        outs[3] = torch.flip(outs[3], [2, 3])
+        return torch.stack(outs).mean(0)
+
 
 def save_visualization(restored_np, output_path, idx):
     """Save visualization image"""
@@ -48,7 +60,7 @@ def test_model(net, dataset, output_path):
             degraded_img = degraded_img.cuda()
 
             # Process image
-            restored = net(degraded_img)
+            restored = net.forward_tta(degraded_img)
 
             # Convert to numpy array and ensure correct format
             restored_np = restored.squeeze(0).cpu().numpy()  # Remove batch dimension
